@@ -30,7 +30,7 @@ function resolve(state,plan,roll=randomInt,action=''){
   const s=structuredClone(state);
   if(s.cls==='fighter'&&typeof s.secondWindReady!=='boolean')s.secondWindReady=true;
   let resource=plan.resource;
-  if(typeof action==='string'&&/\b(?:drink|swallow)\b[\s\S]{0,60}\bpotion\b/i.test(action))resource='potion';
+  if(typeof action==='string'&&/\b(?:drink|swallow)\b[\s\S]{0,60}\bpotions?\b/i.test(action))resource='potion';
   if(typeof action==='string'&&/\bsecond\s+wind\b/i.test(action))resource='secondWind';
   const resolution={kind:plan.kind,intent:text(plan.intent,350),stakes:text(plan.stakes,350),resource,blocked:false,roll:null,healing:0};
   if(resource==='spell'&&s.slots<1){resolution.blocked=true;resolution.reason='No spell slots remain.';return {state:s,resolution}}
