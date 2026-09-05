@@ -38,7 +38,7 @@ async function routeApi(page){
     await page.locator('#wind').click();await page.waitForFunction(()=>document.querySelector('#chapterNo')?.textContent==='TURN 2');assert.match(await page.locator('#pack').textContent(),/Second Wind spent/);assert.equal(await page.locator('#wind').isDisabled(),true);
     const saved=await page.evaluate(()=>localStorage.getItem('astra-open-world-v3'));assert(saved&&saved.includes('Browser Tester'));await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('#heroName').textContent(),'Browser Tester','valid campaign should survive reload');
     await page.locator('#input').fill('trigger rate limit');await page.locator('#command button[type="submit"]').click();await page.waitForFunction(()=>/rate-limited/i.test(document.querySelector('#turnstatus')?.textContent||''));assert.equal(await page.locator('#input').inputValue(),'trigger rate limit','failed action should remain editable');
-    assert.equal(errors.length,0,'open-world page emitted console/page errors: '+errors.join(' | '));
+    const unexpectedErrors=errors.filter(e=>!/Failed to load resource: the server responded with a status of 429/i.test(e));assert.equal(unexpectedErrors.length,0,'open-world page emitted console/page errors: '+unexpectedErrors.join(' | '));
 
     const corrupt=await browser.newPage();await routeApi(corrupt);await corrupt.goto(base);await corrupt.evaluate(()=>localStorage.setItem('astra-open-world-v3',JSON.stringify({state:{version:3,cls:'fighter'},save:'corrupt-save'})));await corrupt.reload({waitUntil:'networkidle'});assert.equal(await corrupt.locator('#creation').isVisible(),true,'corrupt local save should be discarded instead of crashing');await corrupt.close();
 
