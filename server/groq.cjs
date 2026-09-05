@@ -61,6 +61,7 @@ function structuredOutputFailure(details){
 
 function publicFailure(details){
   const suffix=details.providerCode?` (${details.providerStatus}: ${details.providerCode})`:` (${details.providerStatus||'network'})`;
+  if(details.providerCode==='invalid_model_output')return new ProviderError('The dungeon master returned an incomplete turn. Nothing has been changed.',502,0,details);
   if(details.providerStatus===401)return new ProviderError('The dungeon master\'s Groq credential was rejected. Your save is unchanged.',503,0,details);
   if(details.providerStatus===403)return new ProviderError(`The Groq project does not permit an available dungeon-master model${suffix}. Your save is unchanged.`,502,0,details);
   if([400,404,413,422].includes(details.providerStatus))return new ProviderError(`Groq rejected the dungeon-master request${suffix}. Your save is unchanged.`,502,0,details);
@@ -69,12 +70,12 @@ function publicFailure(details){
   return new ProviderError(`Groq could not complete the dungeon-master request${suffix}. Your save is unchanged.`,502,0,details);
 }
 
-function requestBody(model,messages,schema,strict=true){
+function requestBody(model,messages,schema,strict=true,stage='turn'){
   return {
     model,
     messages,
-    temperature:.75,
-    max_completion_tokens:2400,
+    temperature:stage==='plan'?.2:.75,
+    max_completion_tokens:stage==='plan'?1200:3200,
     reasoning_effort:'low',
     response_format:strict
       ?{type:'json_schema',json_schema:{name:'adventure_turn',strict:true,schema}}
@@ -90,7 +91,7 @@ async function request(key,model,messages,schema,{fetcher,now,deadline,stage,str
       method:'POST',
       signal:AbortSignal.timeout(Math.min(16000,remaining)),
       headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-      body:JSON.stringify(requestBody(model,messages,schema,strict))
+      body:JSON.stringify(requestBody(model,messages,schema,strict,stage))
     });
   }catch{
     return null;
@@ -101,10 +102,17 @@ async function parseSuccess(response,model,stage){
   try{
     const data=await response.json();
     if(data.choices?.[0]?.finish_reason==='length')throw new Error('length');
-    return JSON.parse(data.choices?.[0]?.message?.content);
+    const content=data.choices?.[0]?.message?.content;
+    if(typeof content!=='string'||!content.trim())throw new Error('empty');
+    return JSON.parse(content);
   }catch{
     throw new ProviderError('The dungeon master returned an incomplete turn. Nothing has been changed.',502,0,{providerStatus:response.status||200,providerCode:'invalid_model_output',model,stage});
   }
+}
+
+async function parseOrRemember(response,model,stage){
+  try{return {value:await parseSuccess(response,model,stage),failure:null}}
+  catch(error){return {value:null,failure:{providerStatus:error.providerStatus||response.status||200,providerCode:error.providerCode||'invalid_model_output',providerType:error.providerType||'',providerMessage:error.providerMessage||'',model,stage}}}
 }
 
 async function generate(messages,schema,{env=process.env,fetcher=fetch,now=Date.now,stage='turn'}={}){
@@ -141,13 +149,17 @@ async function generate(messages,schema,{env=process.env,fetcher=fetch,now=Date.
         break;
       }
 
-      if(response.ok)return parseSuccess(response,model,stage);
+      if(response.ok){
+        const parsed=await parseOrRemember(response,model,stage);
+        if(parsed.failure){lastFailure=parsed.failure;continue}
+        return parsed.value;
+      }
 
       let details=await providerDetails(response,model,stage);
       lastFailure=details;
 
-      // Groq documents occasional structured-output 400s. Retry once in JSON Object mode;
-      // world validation still rejects malformed or incomplete state before a save is changed.
+      // Retry structured-output request errors once using JSON Object mode. The world layer
+      // still validates every field before a save can change.
       if(structuredOutputFailure(details)){
         const compatibility=await request(key,model,messages,schema,{fetcher,now,deadline,stage,strict:false});
         if(compatibility===null){
@@ -165,7 +177,11 @@ async function generate(messages,schema,{env=process.env,fetcher=fetch,now=Date.
           tryNextCredential=true;
           break;
         }
-        if(compatibility.ok)return parseSuccess(compatibility,model,stage);
+        if(compatibility.ok){
+          const parsed=await parseOrRemember(compatibility,model,stage);
+          if(parsed.failure){lastFailure=parsed.failure;continue}
+          return parsed.value;
+        }
         details=await providerDetails(compatibility,model,stage);
         lastFailure=details;
       }
@@ -177,10 +193,7 @@ async function generate(messages,schema,{env=process.env,fetcher=fetch,now=Date.
         continue;
       }
       if(details.providerStatus>=500)continue;
-      if([400,404,413,422].includes(details.providerStatus)){
-        // Model fallback can repair model-specific request incompatibilities.
-        continue;
-      }
+      if([400,404,413,422].includes(details.providerStatus))continue;
       throw publicFailure(details);
     }
 
