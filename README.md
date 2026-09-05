@@ -2,29 +2,34 @@
 
 An original solo fantasy text adventure inspired by fifth-edition tabletop play. Built for Josh.
 
-Choose a level-2 Fighter, Rogue or Wizard. Investigate a village whose dead have risen, descend into an abbey, and decide how to end its bellkeeper’s vigil. The adventure has visible d20 checks, initiative, armour class, critical hits, turn-based combat, class abilities, consumables, a journal and multiple endings. A peaceful resolution is possible.
+The default experience is a Groq-powered open-world campaign in the original Hollow Marches setting: choose a level-2 Fighter, Rogue or Wizard, then attempt any plausible fictional action, travel beyond Blackthorn, invent goals and keep playing after quests resolve. The original authored adventure remains available at `/classic.html`.
 
 ## Play and develop
 
-No dependencies, API keys, account or paid AI service. The narrator is an authored branching story, not a live LLM. Commands match action IDs, full labels or displayed numbers; `help`, `look`, `journal`, `rest` and `potion` are also supported.
+Run `npm start` and visit http://localhost:3000. Node 22+ is required. Run `npm test` to verify the authored adventure plus open-world state, dice, provider failover and safety checks.
 
-Run `npm start` (Python 3 required) and visit http://localhost:3000. Run `npm test` to verify story paths, combat and resource rules. All game assets are in `dist/`; opening `dist/index.html` directly also works, although browser save behaviour on file URLs varies.
+Open-world play requires server-side Groq configuration described below. The classic adventure at `/classic.html` needs no API key or external AI service and can also be opened from the static files. Saves are stored in localStorage on the current browser and origin; they do not sync across devices.
 
-Deploy the repository to Vercel with framework preset **Other**, no build command, and output directory **dist**. `vercel.json` supplies the output directory. The game stores a single save in localStorage on the current browser and origin. New adventure replaces that save; it does not sync across devices.
+Deploy the repository to Vercel with framework preset **Other**, no build command, and output directory **dist**. `vercel.json` supplies the output directory and the `/api/turn` function.
 
 ## Files
 
-- `dist/engine.js`: serialisable state, story graph, dice and combat; also exports CommonJS for tests.
-- `dist/app.js`: DOM rendering, input, local saves and character creation.
+- `dist/engine.js`: serialisable rules and story graph for the classic adventure; also exports CommonJS for tests.
+- `dist/app.js`: classic adventure UI and local save handling.
+- `dist/world.js`: open-world UI, retry handling and signed-campaign client state.
 - `dist/style.css`: responsive interface and reduced-motion support.
-- `dist/index.html`: accessible page structure, character choices and rules dialog.
-- `test.cjs`: deterministic rules and playthrough checks.
+- `dist/index.html`: open-world page structure and character creation.
+- `dist/classic.html`: original authored adventure.
+- `server/world.cjs`: open-world state validation, signed saves, server dice and bounded world updates.
+- `server/groq.cjs`: Groq request handling, model fallback, provider backoff and safe diagnostics.
+- `api/turn.js`: Vercel API endpoint for campaign creation and turns.
+- `test.cjs` and `test-world.cjs`: deterministic rules, playthrough and provider-recovery checks.
 
 ## Rules scope
 
-This is a streamlined custom 5e-inspired adventure, not a full rules implementation. Preset level-2 characters, single-enemy encounters, simplified hiding, a custom power strike and ward, a single healing rest, and immediate adventure defeat at 0 HP keep solo play concise. Checks fail forward. Natural 20/1 special outcomes apply to attacks, not ability checks. Potions consume an action in combat. Second Wind is a free once-per-adventure action. Class resources do not recharge during this adventure.
+This is a streamlined custom fifth-edition-inspired game, not a complete implementation of D&D. Open-world mode uses server-side cryptographic d20 rolls and bounded AI-authored state changes. The classic adventure uses preset level-2 characters, single-enemy encounters, simplified hiding, custom class abilities and authored branches. Natural 20/1 special outcomes apply to attacks, not ordinary ability checks.
 
-No analytics, external fonts, external images or network calls are used by gameplay. Dice use JavaScript Math.random; this is entertainment, not security-grade randomness. Text is rendered using textContent, including player names and commands.
+The AI Dungeon Master may adjudicate creative fictional actions, but the server remains authoritative for dice, available spell slots/potions and bounded HP, gold and XP changes. Open-world characters currently remain mechanically level 2 while XP is tracked for narrative progression.
 
 ## Attribution
 
@@ -32,29 +37,33 @@ This work includes material from the System Reference Document 5.2.1 (“SRD 5.2
 
 Story, characters and setting are original. Rules have been adapted as described above. No official affiliation is claimed.
 
-## Open-world mode (v2)
+## Open-world mode (v3)
 
-The home page now launches a Groq-powered, free-text open-world campaign. The original authored adventure remains at `/classic.html` and its old save is preserved separately.
+The home page launches a free-text open-world campaign. Players can leave Blackthorn, travel, invent goals, talk freely, craft or attempt creative actions. A planning call determines whether a test is needed before Node's cryptographic random dice resolve it. A narration call receives that authoritative result and returns validated world updates.
 
-Players can leave Blackthorn, travel, invent goals, talk freely, craft or attempt creative actions. A planning call sets the check before Node's cryptographic random dice resolve it. A narration call receives that result and returns validated world updates. The UI never sends provider keys. The API signs each complete campaign state, and only a successful full turn replaces the saved state. Progress, inventory, NPCs, places, quests, a rolling memory and six recent turns are carried forward.
+The browser never receives provider keys. The API signs each complete campaign state, and only a successful full turn replaces the saved state. Progress, inventory, NPCs, places, quests, rolling memory and recent turns are carried forward.
 
 ### Server configuration
 
 For normal deployments, configure these **server-side environment variables** in Vercel, then deploy:
 
-- `GROQ_API_KEYS`: a JSON array of the authorised Groq keys (or comma-separated keys).
-- `DND_SESSION_SECRET`: optional stable random signing secret of at least 32 bytes. If omitted, signing is derived from the first Groq key. Changing the signing secret (or first key when no secret is set) invalidates existing signed saves.
-- `GROQ_MODEL`: optional, defaults to `openai/gpt-oss-120b`; fallback is `openai/gpt-oss-20b` on connection/server failures.
+- `GROQ_API_KEY`: preferred primary Groq credential.
+- `GROQ_API_KEYS`: optional JSON array (or comma-separated list) of additional authorised credentials used as availability backups. They are tried in order; requests are not rotated across credentials for throughput, and a provider 429 pauses the whole pool rather than moving to another organisation.
+- `DND_SESSION_SECRET`: optional stable random signing secret of at least 32 bytes. If omitted, signing is derived from the first configured Groq key. Changing the signing secret (or first key when no secret is set) invalidates existing signed saves.
+- `GROQ_MODEL`: optional primary model, default `openai/gpt-oss-120b`.
+- `GROQ_FALLBACK_MODEL`: optional model fallback, default `openai/gpt-oss-20b`.
 
-The repository and deployment contain no provider credentials. Configure the variables above in the Vercel project before enabling open-world play. Keep the signing secret stable across deployments.
+The repository contains no provider credentials. Keep all Groq keys in Vercel environment variables only. Keep `DND_SESSION_SECRET` stable across deployments when possible.
 
-`npm start` now runs a small Node development server with `/api/turn`; export the variables before starting. Node 22+ required. `npm test` checks both modes. `/api/turn` GET returns configuration status only; POST handles character creation and turns.
+`npm start` runs the development server with `/api/turn`. `/api/turn` GET returns configuration status only; POST handles character creation and turns.
 
 ### Reliability and limitations
 
-- The supplied keys belong to separate organisations. A 429 cools down only that organisation for its full `Retry-After`, then the request tries another available organisation. Requests rotate their starting key to spread load. If every organisation is cooling down, the UI receives the earliest retry time. Set `GROQ_QUOTA_MODE=shared` if replacing these with keys from one organisation; in that mode a 429 pauses the whole pool.
-- Authentication failures disable that key for the current function instance and try a backup, with at most one pool pass plus a model fallback, within a 35-second budget per generation. Provider outages may fall back to the smaller model. No unlimited retry loops.
+- Credentials are ordered primary → backup. A 401 disables the rejected credential for the current function instance and tries a backup. A 403 first tries the fallback model, then may try a backup credential to recover from project/model-permission differences.
+- A Groq 429 honours `Retry-After` and pauses the **entire credential pool** for the current function instance. Backup credentials are not used to multiply provider quota.
+- Both GPT-OSS models use strict JSON Schema output. If Groq returns a structured-output-related 400, the provider layer makes one compatibility retry using JSON Object mode; the normal server-side world validators still reject malformed or incomplete state before any save is changed.
+- Provider failures are logged server-side with safe diagnostics: HTTP status, provider error code/type/message, model, turn stage and retry delay. Keys, prompts, player actions and signed saves are not logged by this diagnostic path.
 - A request has bounded action length, memory, output size and timeouts. Errors preserve the previous save and input. In-flight locks, 12 requests/minute/IP and a short idempotency cache reduce duplicate traffic per function instance; these are not distributed global limits. Larger public deployments should add a durable limiter and shared idempotency store.
 - Saves are HMAC-signed and expire after 30 days without a successful turn. Storage remains local to the browser, not cross-device. Signed saves can be replayed by their owner; this is a single-player game, not a competitive economy.
-- The AI adjudicates fiction and proposes bounded state changes. This is not a complete deterministic 5e combat simulator. Inventory and narrative continuity may occasionally need a player correction. Older history is summarised, not retained verbatim. Characters remain mechanically level 2; XP is tracked for narrative progression.
-- Gameplay sends the player's actions and campaign context to Groq. The application does not log prompts or keys. There is no browser-to-Groq connection.
+- Gameplay sends the player's action and bounded campaign context to Groq. There is no browser-to-Groq connection.
+- AI adjudication is intentionally bounded but is not a complete deterministic tabletop rules engine. Narrative continuity may occasionally need correction; older history is summarised rather than retained verbatim.
