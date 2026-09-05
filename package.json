@@ -8,6 +8,6 @@
     "start": "node dev.cjs"
   },
   "devDependencies": {
-    "jsdom": "^27.0.0"
+    "jsdom": "27.0.0"
   }
 }
