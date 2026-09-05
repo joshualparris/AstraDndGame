@@ -1,1 +1,10 @@
-{"name":"astra-dnd-game","version":"1.0.0","private":true,"description":"The Bell Beneath Blackthorn — a solo 5e-inspired text adventure","scripts":{"test":"node test.cjs","start":"python3 -m http.server 3000 --directory dist"}}
+{
+  "name": "astra-dnd-game",
+  "version": "2.0.0",
+  "private": true,
+  "description": "The Bell Beneath Blackthorn \u2014 a solo 5e-inspired text adventure",
+  "scripts": {
+    "test": "node test.cjs && node test-world.cjs",
+    "start": "node dev.cjs"
+  }
+}
