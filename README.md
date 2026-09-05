@@ -52,8 +52,8 @@ The repository and deployment contain no provider credentials. Configure the var
 
 ### Reliability and limitations
 
-- A 429 stops requests and respects `Retry-After`. Keys in one Groq organisation share quota: there is no key rotation to bypass a rate limit.
-- Authentication failures disable that key for the current function instance and try a backup, with a maximum of four attempts. Provider outages may fall back to the smaller model. No unlimited retry loops.
+- The supplied keys belong to separate organisations. A 429 cools down only that organisation for its full `Retry-After`, then the request tries another available organisation. Requests rotate their starting key to spread load. If every organisation is cooling down, the UI receives the earliest retry time. Set `GROQ_QUOTA_MODE=shared` if replacing these with keys from one organisation; in that mode a 429 pauses the whole pool.
+- Authentication failures disable that key for the current function instance and try a backup, with at most one pool pass plus a model fallback, within a 35-second budget per generation. Provider outages may fall back to the smaller model. No unlimited retry loops.
 - A request has bounded action length, memory, output size and timeouts. Errors preserve the previous save and input. In-flight locks, 12 requests/minute/IP and a short idempotency cache reduce duplicate traffic per function instance; these are not distributed global limits. Larger public deployments should add a durable limiter and shared idempotency store.
 - Saves are HMAC-signed and expire after 30 days without a successful turn. Storage remains local to the browser, not cross-device. Signed saves can be replayed by their owner; this is a single-player game, not a competitive economy.
 - The AI adjudicates fiction and proposes bounded state changes. This is not a complete deterministic 5e combat simulator. Inventory and narrative continuity may occasionally need a player correction. Older history is summarised, not retained verbatim. Characters remain mechanically level 2; XP is tracked for narrative progression.
