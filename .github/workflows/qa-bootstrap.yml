@@ -1,0 +1,23 @@
+name: QA branch browser bootstrap
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  full-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: qa/full-playtest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: npm install --no-save playwright@latest
+      - run: npx playwright install --with-deps chromium
+      - run: node qa/browser.cjs
