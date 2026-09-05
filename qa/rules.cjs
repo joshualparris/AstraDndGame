@@ -20,6 +20,11 @@ test('full-health healing potion is blocked without consumption',()=>{
   assert.equal(out.resolution.blocked,true);assert.equal(out.state.potions,2);assert.equal(out.state.hp,s.maxHp);
 });
 
+test('explicit potion drinking is enforced even if planner misses the resource',()=>{
+  const s={...W.initial('R','fighter'),hp:5};const out=W.resolve(s,plan({resource:'none'}),()=>4,'I drink one of my healing potions.');
+  assert.equal(out.resolution.resource,'potion');assert.equal(out.state.potions,1);assert.equal(out.state.hp,15);
+});
+
 test('potion healing is server-applied once, never doubled by narration',()=>{
   const s={...W.initial('R','fighter'),hp:5};const out=W.resolve(s,plan({resource:'potion'}),()=>4,'I drink a healing potion.');
   assert.equal(out.state.hp,15);assert.equal(out.state.potions,1);
@@ -55,6 +60,13 @@ test('blocked actions preserve material state but still advance narrative histor
   const s={...W.initial('W','wizard'),slots:0,hp:7,gold:9};const blocked=W.resolve(s,plan({resource:'spell'}),()=>10,'I cast a spell.');
   const updated=W.apply(blocked.state,result(blocked.state,{location:'Wrong place',time:'Wrong time',inventory:[],goldChange:50,hpChange:12,xpGain:25}),'I cast a spell.',blocked.resolution);
   assert.equal(updated.location,s.location);assert.equal(updated.time,s.time);assert.deepEqual(updated.inventory,s.inventory);assert.equal(updated.gold,9);assert.equal(updated.hp,7);assert.equal(updated.xp,0);assert.equal(updated.turn,1);assert.equal(updated.history.length,1);
+});
+
+test('malformed non-critical DM metadata falls back to previous safe state',()=>{
+  const s={...W.initial('R','rogue'),hp:9,gold:13};const before=structuredClone(s);
+  const malformed={narrative:'The woman studies the traveller and gives a cautious answer.',location:'',time:null,suggestions:null,memory:'',inventory:{bad:true},npcs:[{name:'wrong shape'}],quests:null,places:null,hpChange:'3',goldChange:null,xpGain:1.5,rest:'sometimes'};
+  const updated=W.apply(s,malformed,'I examine the woman.',{blocked:false,healing:0});
+  assert.equal(updated.turn,1);assert.equal(updated.narrative,malformed.narrative);assert.equal(updated.location,before.location);assert.equal(updated.time,before.time);assert.equal(updated.memory,before.memory);assert.deepEqual(updated.suggestions,before.suggestions);assert.deepEqual(updated.inventory,before.inventory);assert.deepEqual(updated.npcs,before.npcs);assert.deepEqual(updated.quests,before.quests);assert.deepEqual(updated.places,before.places);assert.equal(updated.hp,9);assert.equal(updated.gold,13);assert.equal(updated.xp,0);
 });
 
 test('advantage and disadvantage use the correct die',()=>{
