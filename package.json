@@ -4,7 +4,10 @@
   "private": true,
   "description": "The Bell Beneath Blackthorn — a solo 5e-inspired text adventure",
   "scripts": {
-    "test": "node test.cjs && node test-world.cjs && node qa/rules.cjs && node test-api.cjs",
+    "test": "node test.cjs && node test-world.cjs && node qa/rules.cjs && node test-api.cjs && node qa/dom.cjs",
     "start": "node dev.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.0"
   }
 }
