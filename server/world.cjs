@@ -4,6 +4,7 @@ const classes=require('../dist/engine.js').classes;
 const text=(v,n=1000)=>typeof v==='string'?v.slice(0,n):'';
 const num=(v,lo,hi,d=0)=>Number.isFinite(v)?Math.max(lo,Math.min(hi,Math.round(v))):d;
 const list=(v,n=20,len=160)=>Array.isArray(v)?v.filter(x=>typeof x==='string').map(x=>x.slice(0,len)).slice(0,n):[];
+const stringList=v=>Array.isArray(v)&&v.every(x=>typeof x==='string');
 const opening='Rain beads on your cloak. Ahead, Blackthorn huddles beneath a ruined abbey. Its bell tower has no bell.\n\nA woman waits beside the road with a lantern and a child’s muddy shoe. “They walked out of the graves,” she says. “My daughter followed them.”\n\nTo the west, a river road leads towards the trading town of Greyhaven. North, an old forest swallows the king’s highway. Somewhere under the abbey, a bell begins to sound.\n\nThe road is yours. What do you do?';
 function initial(name,cls){
   if(!classes[cls])throw new Error('Choose a valid class.');
@@ -29,6 +30,7 @@ function resolve(state,plan,roll=randomInt,action=''){
   const s=structuredClone(state);
   if(s.cls==='fighter'&&typeof s.secondWindReady!=='boolean')s.secondWindReady=true;
   let resource=plan.resource;
+  if(typeof action==='string'&&/\b(?:drink|swallow)\b[\s\S]{0,60}\bpotion\b/i.test(action))resource='potion';
   if(typeof action==='string'&&/\bsecond\s+wind\b/i.test(action))resource='secondWind';
   const resolution={kind:plan.kind,intent:text(plan.intent,350),stakes:text(plan.stakes,350),resource,blocked:false,roll:null,healing:0};
   if(resource==='spell'&&s.slots<1){resolution.blocked=true;resolution.reason='No spell slots remain.';return {state:s,resolution}}
@@ -45,27 +47,35 @@ function resolve(state,plan,roll=randomInt,action=''){
   }else s.lastRoll=null;
   return {state:s,resolution};
 }
-function narrateMessages(state,action,resolution){return [{role:'system',content:system+'\n'+classRules(state)+`\nNarrate the immediate result of ONE action in 120–220 words, with sensory detail and specific NPC dialogue when appropriate. The server resolution is authoritative. Never contradict its success/failure, critical, resource block or healing. Give 3 short optional suggestions, not a fixed menu. Update a compact world memory (max 3500 characters) including lasting consequences, NPC relationships, unresolved promises, important past actions; preserve meaningful older facts. Return complete current inventory, NPC notes, quests and discovered places, retaining unchanged entries. These lists are bounded (inventory 30, NPCs 15, quests 12, places 20): consolidate rather than forgetting key facts. Character health, gold and XP changes must be justified in narrative; hpChange between -12 and 12, goldChange -50..50, xpGain 0..25. The server has already applied healing from a potion or Second Wind; never repeat that healing in hpChange. Rest only if the player explicitly rests and the situation permits: short restores 6 HP; long restores full HP and slots, takes 8 hours and must respect danger and travel. When rest is short or long, set hpChange to 0 because the server applies all rest healing. Report rest none otherwise. A blocked action changes no resources, location, time or inventory. Describe the block and offer alternatives. Do not output a separate ending or stop future play. Scene location and time must remain consistent. If character level is 2, keep challenges solo level 2; progression is narrative XP tracking, not automatic levelling.`},{role:'user',content:JSON.stringify({state:context(state),action,resolution})}]}
+function narrateMessages(state,action,resolution){return [{role:'system',content:system+'\n'+classRules(state)+`\nNarrate the immediate result of ONE action in 120–220 words, with sensory detail and specific NPC dialogue when appropriate. The server resolution is authoritative. Never contradict its success/failure, critical, resource block or healing. Give 3 short optional suggestions, not a fixed menu. Update a compact world memory (max 3500 characters) including lasting consequences, NPC relationships, unresolved promises, important past actions; preserve meaningful older facts. Return complete current inventory, NPC notes, quests and discovered places, retaining unchanged entries. These lists are bounded (inventory 30, NPCs 15, quests 12, places 20): consolidate rather than forgetting key facts. Never return blank narrative, location, time or memory strings. Character health, gold and XP changes must be justified in narrative; hpChange between -12 and 12, goldChange -50..50, xpGain 0..25. The server has already applied healing from a potion or Second Wind; never repeat that healing in hpChange. Rest only if the player explicitly rests and the situation permits: short restores 6 HP; long restores full HP and slots, takes 8 hours and must respect danger and travel. When rest is short or long, set hpChange to 0 because the server applies all rest healing. Report rest none otherwise. A blocked action changes no resources, location, time or inventory. Describe the block and offer alternatives. Do not output a separate ending or stop future play. Scene location and time must remain consistent. If character level is 2, keep challenges solo level 2; progression is narrative XP tracking, not automatic levelling.`},{role:'user',content:JSON.stringify({state:context(state),action,resolution})}]}
 function apply(state,result,action,resolution){
-  for(const k of ['narrative','location','time','memory'])if(typeof result[k]!=='string'||!result[k].trim())throw new Error('Incomplete DM response.');
-  for(const k of ['suggestions','inventory','npcs','quests','places'])if(!Array.isArray(result[k])||!result[k].every(x=>typeof x==='string'))throw new Error('Incomplete DM response.');
-  for(const k of ['hpChange','goldChange','xpGain'])if(!Number.isInteger(result[k]))throw new Error('Invalid DM state.');
-  if(!['none','short','long'].includes(result.rest))throw new Error('Invalid rest.');
+  if(!result||typeof result!=='object'||Array.isArray(result))throw new Error('Incomplete DM response: object.');
+  if(typeof result.narrative!=='string'||!result.narrative.trim())throw new Error('Incomplete DM response: narrative.');
   const s=structuredClone(state);
   if(s.cls==='fighter'&&typeof s.secondWindReady!=='boolean')s.secondWindReady=true;
+  const rest=['none','short','long'].includes(result.rest)?result.rest:'none';
+  const hpChange=Number.isInteger(result.hpChange)?result.hpChange:0;
+  const goldChange=Number.isInteger(result.goldChange)?result.goldChange:0;
+  const xpGain=Number.isInteger(result.xpGain)?result.xpGain:0;
   s.turn++;
   s.narrative=text(result.narrative,5000);
-  s.suggestions=list(result.suggestions,4,140);
+  if(stringList(result.suggestions))s.suggestions=list(result.suggestions,4,140);
   if(!resolution.blocked){
-    s.location=text(result.location,100);s.time=text(result.time,100);s.inventory=list(result.inventory,30,160);s.npcs=list(result.npcs,15,260);s.quests=list(result.quests,12,200);s.places=list(result.places,20,180);s.memory=text(result.memory,3500);
-    const explicitRest=result.rest!=='none'&&/\b(rest|sleep|camp|nap|bed)\b/i.test(action);
-    let hpDelta=num(result.hpChange,-12,12);
+    if(typeof result.location==='string'&&result.location.trim())s.location=text(result.location,100);
+    if(typeof result.time==='string'&&result.time.trim())s.time=text(result.time,100);
+    if(stringList(result.inventory))s.inventory=list(result.inventory,30,160);
+    if(stringList(result.npcs))s.npcs=list(result.npcs,15,260);
+    if(stringList(result.quests))s.quests=list(result.quests,12,200);
+    if(stringList(result.places))s.places=list(result.places,20,180);
+    if(typeof result.memory==='string'&&result.memory.trim())s.memory=text(result.memory,3500);
+    const explicitRest=rest!=='none'&&/\b(rest|sleep|camp|nap|bed)\b/i.test(action);
+    let hpDelta=num(hpChange,-12,12);
     if((resolution.healing>0||explicitRest)&&hpDelta>0)hpDelta=0;
-    s.hp=num(s.hp+hpDelta,0,s.maxHp);s.gold=num(s.gold+num(result.goldChange,-50,50),0,999999);s.xp+=num(result.xpGain,0,25);
+    s.hp=num(s.hp+hpDelta,0,s.maxHp);s.gold=num(s.gold+num(goldChange,-50,50),0,999999);s.xp+=num(xpGain,0,25);
     if(explicitRest){
-      s.hp=result.rest==='long'?s.maxHp:Math.min(s.maxHp,s.hp+6);
+      s.hp=rest==='long'?s.maxHp:Math.min(s.maxHp,s.hp+6);
       if(s.cls==='fighter')s.secondWindReady=true;
-      if(result.rest==='long'&&s.cls==='wizard')s.slots=3;
+      if(rest==='long'&&s.cls==='wizard')s.slots=3;
     }
   }
   s.history=[...s.history,{action:text(action,1000),narrative:text(s.narrative,2500)}].slice(-6);
