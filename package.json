@@ -1,10 +1,10 @@
 {
   "name": "astra-dnd-game",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "private": true,
   "description": "The Hollow Marches — an open-world AI dungeon master with deterministic rules and tactical maps",
   "scripts": {
-    "test": "node test.cjs && node test-world.cjs && node qa/rules.cjs && node qa/aidm-upgrade.cjs && node qa/crossrepo.cjs && node qa/aidm-port.cjs && node test-api.cjs && node qa/dom.cjs",
+    "test": "node test.cjs && node test-world.cjs && node qa/rules.cjs && node qa/aidm-upgrade.cjs && node qa/crossrepo.cjs && node qa/aidm-port.cjs && node qa/adjudication.cjs && node test-api.cjs && node qa/dom.cjs",
     "start": "node dev.cjs"
   },
   "devDependencies": {
