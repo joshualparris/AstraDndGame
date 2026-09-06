@@ -1,0 +1,18 @@
+{
+  "name": "Astra Adventures: The Hollow Marches",
+  "short_name": "Astra D&D",
+  "description": "An open-world AI fantasy adventure with deterministic rules and persistent campaign memory.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101613",
+  "theme_color": "#111715",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
