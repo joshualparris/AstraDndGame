@@ -1,0 +1,26 @@
+PASS B01 1366 fighter creation, free text, reload, backup, slot, map
+PASS B01 1366 wizard creation, free text, reload, backup, slot, map
+PASS B01 1366 rogue creation, free text, reload, backup, slot, map
+PASS B01 1366 cleric creation, free text, reload, backup, slot, map
+PASS B01 1366 paladin creation, free text, reload, backup, slot, map
+PASS B01 1366 ranger creation, free text, reload, backup, slot, map
+PASS B01 768 fighter creation, free text, reload, backup, slot, map
+PASS B01 768 wizard creation, free text, reload, backup, slot, map
+PASS B01 768 rogue creation, free text, reload, backup, slot, map
+PASS B01 768 cleric creation, free text, reload, backup, slot, map
+PASS B01 768 paladin creation, free text, reload, backup, slot, map
+PASS B01 768 ranger creation, free text, reload, backup, slot, map
+PASS B01 360 fighter creation, free text, reload, backup, slot, map
+PASS B01 360 wizard creation, free text, reload, backup, slot, map
+PASS B01 360 rogue creation, free text, reload, backup, slot, map
+PASS B01 360 cleric creation, free text, reload, backup, slot, map
+PASS B01 360 paladin creation, free text, reload, backup, slot, map
+PASS B01 360 ranger creation, free text, reload, backup, slot, map
+PASS B02 safe undo restores prior turn
+PASS B03 real backup file import survives reload
+PASS B04 tactical encounter signed API and grid
+PASS B05 wizard spell consumes one slot through API
+PASS B06 suggestion button performs exactly one turn
+PASS B07 zero HP import routes action to death save
+PASS B08 long imported transcript has no duplicate entries and keeps log semantics
+{"total":25,"passed":25,"failed":0}

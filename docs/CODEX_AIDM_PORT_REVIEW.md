@@ -1,10 +1,11 @@
 # Independent AIDungeonMaster → Astra acceptance review
 
-Status: IN PROGRESS — do not merge/deploy as a completed full port.
+Status: **FAIL for merging/deploying as a completed full port**, audited 2026-09-06. Claude's implementation remains in progress; this is a completed review of the pinned snapshot, not certification of future commits.
 
 QA branch: `qa/codex-full-aidm-port`. Isolated worktree: `C:/dev/Astra/CodexPortQA`.
 Initial target: `1ff90ff` (`upgrade/full-aidm-port`, local Claude work); phase 2: `0d78862`; main: `f28e098`.
 Source inspected: `C:/dev/AIDM`, `5a695733e7b322d4eb1fd38de1c29f32fa30fbf8`.
+The supplied scratchpad source checkout resolves to the same SHA and has no tracked changes. Both source paths therefore represent the same reference.
 No shared production files changed. Tests use exported production interfaces and synthetic data; no live providers or credentials.
 
 ## Reproduction
@@ -56,3 +57,64 @@ Run `node qa/codex-combat-parity.cjs`, `node qa/codex-ai-adversarial.cjs`, `node
 | Browser/mobile | PARTIAL | Existing DOM suite passes; independent browser run pending |
 
 Source limitations are not automatically port bugs. Source uses a bounded spell whitelist and simplified healing/feature behavior, level scaling does not scale spell slots, and its documentation explicitly excludes several full-5e systems. This review targets actual implementation, not full D&D rules.
+
+## Final snapshot and independent evidence
+
+Final target: **`323173594533e2f779799fd043daab3560b1e7ff`**, `origin/upgrade/full-aidm-port`. Tested from a detached snapshot at `C:/dev/Astra/CodexPortSnapshot` to avoid changes during a run. Origin was fetched before the baseline and again during/following the audit. Main and phase-2 references remain `f28e098` and `0d78862`; phase 2 is exactly 13 commits ahead of main.
+
+Phase 2 adds three class definitions, companion scaffolding, bounded canonical memory, provider abstraction, and browser/API wiring. The local `ffee759` correction fixed canonical-memory syntax and inaccurate assertions before this audit began. `1ff90ff` adds Claude's port document, which was not used as the acceptance oracle. `3231735` adds SRD datasets and lookup functions: 12 classes, 319 spells and level tables. **Those new tables are not imported into the active turn/tactical mechanics at this SHA.** Data availability does not establish playable feature parity. Existing runtime defects reproduce unchanged.
+
+| Suite | Checks | Pass | Fail |
+|---|---:|---:|---:|
+| Independent combat | 24 | 13 | 11 |
+| Independent AI boundary | 17 | 8 | 9 |
+| Legacy saves / invariants | 22 | 19 | 3 |
+| Long campaigns / open-world | 12 | 8 | 4 |
+| Classes / progression | 16 | 12 | 4 |
+| Provider failure / API retry | 8 | 8 | 0 |
+| Executed source/port comparisons | 4 | 0 | 4 |
+| Browser regression | 25 | 25 | 0 |
+| **Independent total** | **128** | **93** | **35** |
+| Reference AIDM Vitest suite | 413 | 413 | 0 |
+
+In addition, all **11 existing Astra npm-test entrypoints** pass at the final SHA, including SRD tests. Their internal assertions are not added to the named-test total because several scripts do not publish counts. Thus 541 explicitly counted checks ran (506 pass, 35 fail), plus the 11 existing script entrypoints. Repeated baseline runs are not double-counted. The 1,000 coordinate, 500 malformed-plan and 256 optional-save combinations are iterations inside three counted checks, not 1,756 additional tests.
+
+Raw final outputs: `qa/evidence/latest-*.txt`; source suite: `qa/evidence/source-vitest.json`. Screenshots: `qa/evidence/browser-1366.png`, `browser-768.png`, `browser-360.png`. All data and credentials in the custom tests are synthetic. Save compatibility tests sign the untouched legacy object directly, avoiding accidentally upgrading it before exercising verification.
+
+## Additional confirmed defects and limits
+
+| ID / severity | Exact reproduction | Source vs Astra / likely cause / suggested fix |
+|---|---|---|
+| D12 High | `node qa/codex-long-campaign.cjs`, M01 | Hidden item under Blackthorn bridge disappears by turn 10; Mira's favour disappears by turn 30, also absent at 100/300. Checks scan all serialized state for semantic terms, not just exact canonical IDs. Input deliberately stops repeating earlier facts, exercising retained memory. `canon.prune` keeps only eight low-importance facts; hidden items/favours are ranked low. Preserve unresolved obligations and hidden-object facts with explicit records. Vane's betrayal and Greyhaven promise survive these runs. Bounded memory passes; durable retention fails. This is an Astra promise/regression requirement, not proof of arbitrary-duration source memory. |
+| D13 High | R02 at 5/10/20; X04 | Source executed proficiency is 3/4/6; port remains 2. Newly imported SRD data is unused by `world.resolve`. Derive mechanical proficiency from the authoritative character level. Levels 1–4 tests only establish modifier/save acceptance, not supported creation at those levels. |
+| D14 High | A13 | After deterministic natural-1 miss, narration saying the attack hit and killed the enemy is accepted. No local outcome-to-narration validation. Source has `llm/validate-narration.ts` and orchestration validation. Reject/repair contradiction before committing narration. |
+| D15 Medium | A14, A15 | Local `validPlan` accepts extra `characterId`/`targetId` values despite `additionalProperties:false`. Current engine ignores these fields, so this is contract-validation failure, not demonstrated arbitrary-target damage. Validate exact schema plus actor references when typed requests arrive. Unknown NPC / condition-target semantics cannot yet be represented. |
+| D16 High | C21 | A second enemy never makes an OA or consumes a reaction. `move` only looks up `enemy-1`. Enumerate eligible hostile actors along movement path. Multi-enemy fixture is synthetic because creation currently supports only one. |
+| D17 High | C22 | `tacticalAttack(state,'hero')` succeeds, damaging the hero combat actor while top-level hero HP remains unchanged. Validate hostile target identity and keep authoritative HP synchronized. Source character attack resolves monster targets. |
+
+No newly reported defect was fixed by Claude during this audited interval. **17 grouped defects remain unresolved**; 35 failing checks include repeated manifestations and four differential confirmations. No production fixes were applied by Codex.
+
+## Updated acceptance and completion answers
+
+1. **Full source port? NO.** Core action schemas, initiative, multi-monster actors, large footprints, per-level slots, known spells, features and progression are incomplete. New SRD data exceeds source content breadth but is not connected to play.
+2. **Correct behavior? NO overall.** Basic turn economy, cover, player crits, exhaustion gates and death-save redirection pass; listed defects fail.
+3. **Old Astra regressions? No failures found in exercised browser/old suites.** This does not validate untested paths. Phone composer sits below a long sidebar and requires scrolling; the screenshot records this usability concern rather than treating it as a new port regression.
+4. **Old saves survive? YES for tested valid v3 variants.** 18 synthetic legacy scenarios and 256 optional-field combinations preserve tested data. Invalid-state semantic checks fail. There is no new schema migration at this SHA to certify. Expired saves remain expired by existing policy.
+5. **Combat deterministic? PARTIAL.** Injected dice are repeatable; mechanics are wrong for paths, downed actions, class ranges, monster crits and multiple actors. Fleeing has no exported deterministic end-combat operation; large creatures are not ported.
+6. **Can AI errors corrupt mechanics? YES.** Unrequested rest, invented damage, illegal purchases and unknown spells reproduce. Signature integrity cannot repair incorrect server-authorized changes.
+7. **Multiple classes work? PARTIAL.** All six create/save/render and have basic profiles; detailed feature/spell/level parity is absent. Starting stats deliberately differ from source level-3 templates; no false demand for identical starting HP. No verified six-class full-rule acceptance.
+8. **Multiple monsters work? NO.** Creation is singular and synthetic two-enemy states fail turns, victory and OA behavior.
+9. **Long-term campaign state survives? NO for all required facts.** M01 proves two important facts are lost; bounded growth and canonical ID deduplication pass.
+10. **Still open-world? YES at tested interfaces.** Eight free-form actions are accepted; browser bakery/ignore-quest commands work through real handlers. No authored-scene whitelist was introduced. Live model willingness and narrative quality were not tested.
+
+## Browser and provider scope
+
+Browser tests use real API handlers, real HMAC save signing/verification and real UI; only DM generation is mocked. Chromium checks cover six classes × desktop 1366×768 / tablet 768×1024 / phone 360×800, creation, free text, local saves, reload, downloaded backup, map, safe undo, file import, tactical start/HUD, wizard spell consumption, suggestion buttons, unconscious action/death saves, and a 100-entry imported transcript with log accessibility semantics. Input is interactable after scrolling, with no horizontal overflow or page exceptions. This does not prove screen-reader announcement quality, no scroll jumps, complete death/recovery paths, or multiple-monster UI behavior. Browser save-slot writing is tested; slot-load behavior also has coverage in the existing suite, but was not newly exercised by the independent browser suite.
+
+Provider tests mock timeout exceptions (not a real wall-clock timeout), HTTP 500/401/429, malformed JSON, next model/key/provider, exhaustion, failed narration rollback, retry and duplicate-response caching. Rate limit deliberately fails closed, without key/provider rotation to bypass quota. Idempotency is verified in one handler process; distributed/cold-start replay remains unverified because cache/locks are in-memory Maps.
+
+## Re-running against Claude's next commit
+
+Set `ASTRA_QA_TARGET` to a clean checkout of the target SHA. Run `node qa/codex-run.cjs`; add `--browser` when Playwright is installed. Set `SOURCE_AIDM_ROOT` to a source checkout with its `tsx` dependency to include live differential checks. Browser/dependency resolution uses ordinary Node resolution (`NODE_PATH` can reference existing dependency folders without changing package.json). Nonzero exit means acceptance is not met. Preserve baseline evidence and write each new revision's outputs separately; do not overwrite this snapshot's conclusions without a fresh run.
+
+Final recommendation: **FAIL / do not merge or deploy this snapshot as the completed AIDungeonMaster port.** QA branch additions are reviewable independently and do not modify Claude's production systems.

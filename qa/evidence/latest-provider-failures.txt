@@ -1,0 +1,10 @@
+PASS P01 Groq timeout uses fallback model
+PASS P01 Groq 500 uses fallback model
+PASS P01 Groq malformed uses fallback model
+PASS P02 credential rejection tries next key
+PASS P03 complete Groq failure tries next provider
+PASS P04 rate limit stops with retry information
+PASS P05 all providers exhausted rejects
+[astra-dnd provider] {"status":503,"providerStatus":0,"providerCode":"","providerType":"","providerMessage":"","model":"","stage":"","retryAfter":0}
+PASS P06 failed narration preserves original signed save; retry charges once; duplicate cached
+{"target":"C:\\dev\\Astra\\CodexPortSnapshot","total":8,"passed":8,"failed":0}

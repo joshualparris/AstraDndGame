@@ -1,0 +1,30 @@
+SOURCE OBSERVATIONS {"wall":false,"difficult":15,"unknownSpell":false,"purchase":false,"proficiencies":[2,2,2,2,3,4,6]}
+FAIL X01 source/port blocked-wall movement parity — Expected values to be strictly equal:
+
+true !== false
+
+FAIL X02 source/port difficult-terrain path cost parity — Expected values to be strictly equal:
+
+10 !== 15
+
+FAIL X03 source/port unknown spell rejection parity — Expected values to be strictly equal:
+
+true !== false
+
+FAIL X04 source/port proficiency scaling parity — Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    2,
+    2,
+    2,
+    2,
++   2,
++   2,
++   2
+-   3,
+-   4,
+-   6
+  ]
+
+{"target":"C:\\dev\\Astra\\CodexPortQA","total":4,"passed":0,"failed":4}

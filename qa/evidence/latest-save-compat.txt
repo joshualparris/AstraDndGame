@@ -1,0 +1,32 @@
+PASS S01 legacy fighter no-combat
+PASS S01 legacy fighter old-grid
+PASS S01 legacy fighter zero-hp
+PASS S01 legacy fighter populated
+PASS S01 legacy fighter depleted
+PASS S01 legacy fighter undo
+PASS S01 legacy rogue no-combat
+PASS S01 legacy rogue old-grid
+PASS S01 legacy rogue zero-hp
+PASS S01 legacy rogue populated
+PASS S01 legacy rogue depleted
+PASS S01 legacy rogue undo
+PASS S01 legacy wizard no-combat
+PASS S01 legacy wizard old-grid
+PASS S01 legacy wizard zero-hp
+PASS S01 legacy wizard populated
+PASS S01 legacy wizard depleted
+PASS S01 legacy wizard undo
+PASS S02 missing optional legacy fields (256 combinations)
+FAIL S03 signed negative gold must fail validation or normalize — The expression evaluated to a falsy value:
+
+  assert(out.gold>=0)
+
+FAIL S04 signed HP above maximum must fail validation or normalize — The expression evaluated to a falsy value:
+
+  assert(out.hp<=out.maxHp)
+
+FAIL S05 signed duplicate actor IDs must fail validation or normalize — Expected values to be strictly equal:
+
+2 !== 3
+
+{"target":"C:\\dev\\Astra\\CodexPortSnapshot","total":22,"passed":19,"failed":3}

@@ -1,0 +1,26 @@
+PASS R01 fighter initial state and save roundtrip
+PASS R01 wizard initial state and save roundtrip
+PASS R01 rogue initial state and save roundtrip
+PASS R01 cleric initial state and save roundtrip
+PASS R01 paladin initial state and save roundtrip
+PASS R01 ranger initial state and save roundtrip
+PASS R02 level 1 proficiency is level-derived
+PASS R02 level 2 proficiency is level-derived
+PASS R02 level 3 proficiency is level-derived
+PASS R02 level 4 proficiency is level-derived
+FAIL R02 level 5 proficiency is level-derived — Expected values to be strictly equal:
+
+5 !== 6
+
+FAIL R02 level 10 proficiency is level-derived — Expected values to be strictly equal:
+
+5 !== 7
+
+FAIL R02 level 20 proficiency is level-derived — Expected values to be strictly equal:
+
+5 !== 9
+
+PASS R03 potion healing caps at max HP
+PASS R04 explicit fighter short rest restores feature
+FAIL R05 spell slot levels and known spells exposed — No typed slots or known-spells field
+{"target":"C:\\dev\\Astra\\CodexPortSnapshot","total":16,"passed":12,"failed":4}

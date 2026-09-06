@@ -1,0 +1,28 @@
+PASS A01 malformed plans rejected without mutation (500 cases)
+PASS A02 exhausted slots block spell
+FAIL A03 unknown spell cannot spend slots — The expression evaluated to a falsy value:
+
+  assert(r.resolution.blocked)
+
+PASS A04 downed action becomes death save
+FAIL A05 narration-only JSON missing required fields rejected — Missing expected exception.
+FAIL A06 invented long rest cannot recharge spell slots — Expected values to be strictly equal:
+
+3 !== 0
+
+FAIL A07 blocked spell cannot recharge via invented long rest — Expected values to be strictly equal:
+
+3 !== 0
+
+FAIL A08 invented damage cannot reduce HP on harmless observation — Expected values to be strictly equal:
+
+12 !== 24
+
+FAIL A09 unaffordable purchase must reject without awarding inventory — The expression evaluated to a falsy value:
+
+  assert(!out.inventory.includes('Plate armour'))
+
+PASS A10 exhausted fighter feature rejected
+PASS A11 invalid adjudication repaired once before resolution
+PASS A12 unrecoverable adjudication rejects after two attempts
+{"target":"C:\\dev\\Astra\\CodexPortQA","total":12,"passed":6,"failed":6}

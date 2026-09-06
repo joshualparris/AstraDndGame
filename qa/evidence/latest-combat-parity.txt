@@ -1,0 +1,58 @@
+PASS C01 attack then attack rejects second action without input mutation
+PASS C02 Dash then attack rejects attack
+PASS C03 repeated moves exhaust allowance
+FAIL C04 movement cannot cross a complete blocked wall — Expected values to be strictly equal:
+
+true !== false
+
+FAIL C05 difficult terrain crossed en route consumes movement — Expected values to be strictly equal:
+
+10 !== 15
+
+PASS C06 occupied endpoint rejected
+PASS C07 melee at ten feet rejected
+PASS C08 total cover blocks ranged attack
+PASS C09 half cover adds AC
+PASS C09 threequarters cover adds AC
+PASS C10 natural one misses and natural twenty doubles dice
+PASS C11 Disengage suppresses OA
+PASS C12 OA consumes reaction and damages exactly once
+FAIL C13 zero HP encounter does not resurrect hero — Expected values to be strictly equal:
+
+1 !== 0
+
+FAIL C14 zero HP actor cannot attack — Expected values to be strictly equal:
+
+true !== false
+
+FAIL C15 killing one of two enemies keeps combat active — Expected values to be strictly equal:
+
+false !== true
+
+FAIL C16 second living enemy acts when first is dead — The expression evaluated to a falsy value:
+
+  assert(t.endTurn(s,high).state.hp<s.hp)
+
+FAIL C17 rogue shortbow works at thirty feet — Expected values to be strictly equal:
+
+false !== true
+
+FAIL C18 wizard Fire Bolt works at ninety feet — Expected values to be strictly equal:
+
+false !== true
+
+FAIL C19 natural twenty monster OA doubles dice — Expected values to be strictly equal:
+
+17 !== 11
+
+PASS C20 seeded malformed coordinates never mutate input or yield invalid HP
+FAIL C21 second enemy opportunity attack consumes its reaction — Expected values to be strictly equal:
+
+true !== false
+
+FAIL C22 cannot attack own hero as hostile target — Expected values to be strictly equal:
+
+true !== false
+
+PASS C23 OA reducing HP to zero marks unconscious
+{"target":"C:\\dev\\Astra\\CodexPortSnapshot","total":24,"passed":13,"failed":11}

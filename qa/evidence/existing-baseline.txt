@@ -1,0 +1,71 @@
+
+> astra-dnd-game@2.4.1 test
+> node test.cjs && node test-world.cjs && node qa/rules.cjs && node qa/aidm-upgrade.cjs && node qa/crossrepo.cjs && node qa/aidm-port.cjs && node qa/aidm-phase2.cjs && node qa/adjudication.cjs && node test-api.cjs && node qa/dom.cjs
+
+All checks passed: three classes, peaceful and combat endings, checks, resources, hiding, escape and defeat.
+Open-world checks passed: signed saves, server dice, resource limits, state bounds, shared provider backoff, credential/model failover, structured-output recovery, safe diagnostics, no browser keys.
+✓ all three open-world classes initialise with bounded resources
+✓ full-health healing potion is blocked without consumption
+✓ explicit potion drinking is enforced even if planner misses the resource
+✓ potion healing is server-applied once, never doubled by narration
+✓ fighter Second Wind heals, spends, blocks repeat, and refreshes on short rest
+✓ legacy fighter saves gain a safe Second Wind state
+✓ rest healing cannot be doubled by positive hpChange
+✓ long rest restores wizard slots and health
+✓ blocked actions preserve material state but still advance narrative history
+✓ malformed non-critical DM metadata falls back to previous safe state
+✓ advantage and disadvantage use the correct die
+✓ attack natural 20 succeeds and natural 1 fails regardless of total
+✓ state updates remain bounded
+✓ history is capped and signed saves reject tampering
+✓ provider falls back after malformed successful model output
+✓ provider uses smaller output budget for planning than narration
+
+16 QA rule tests passed.
+✓ rich identity is bounded and persists in initial state
+✓ invalid identity choices safely fall back
+✓ legacy v3 saves are upgraded with new AI DM state
+✓ background proficiency is applied by the deterministic resolver
+✓ poisoned condition forces disadvantage on an attack
+✓ opposing advantage and disadvantage cancel
+✓ fighter attack damage is server rolled and critical doubles the weapon die
+✓ rogue advantage adds deterministic sneak damage
+✓ Magic Missile consumes a slot and gets automatic server damage
+✓ death-save natural 20 revives the hero at 1 HP
+✓ three death-save successes return play at 1 HP
+✓ three death-save failures become a playable setback rather than deletion
+✓ condition changes are whitelisted, deduplicated and removable
+✓ map, factions, facts and journal lists remain bounded
+✓ rules module exposes the standard condition vocabulary and identity tables
+
+15 AI-DM upgrade tests passed.
+Cross-repo QA passed: portable backup, slots, safe undo rules, accessibility preferences, inspection hook and injected controls.
+✓ derives exploration graph from current location and exits
+✓ spatial enrichment survives signed save round trip
+✓ starts a deterministic tactical encounter
+✓ movement enforces speed and bounds
+✓ dash consumes the action and doubles movement allowance
+✓ disengage prevents opportunity attacks when leaving reach
+✓ leaving reach without disengage triggers an opportunity attack
+✓ melee range is server-enforced
+✓ total cover blocks a ranged attack
+✓ enemy turn advances round and attacks or closes distance
+AIDungeonMaster port regression checks passed.
+✓ open-world class registry has all six distinct classes
+✓ new caster starts with signed party-state resources
+✓ paladin smite consumes normal spell resource and rolls extra server damage
+✓ ranger longbow works at tactical range with deterministic cover-aware attack
+✓ long rest restores new spellcaster slots
+✓ canonical memory keeps important old truths while bounding noise
+✓ party synchronisation preserves future companion slots
+✓ provider abstraction defaults to Groq and preserves signing derivation
+✓ alternate provider 429 fails closed instead of rotating credentials for quota
+AIDungeonMaster phase 2 checks passed: six classes, party state, canonical memory, tactical profiles and provider abstraction.
+✓ valid adjudication is accepted without retry
+✓ parseable but invalid adjudication retries on configured fallback model
+✓ two semantically invalid plans fail closed without reaching rules engine
+Adjudication validation QA passed.
+[astra-dnd provider] {"status":429,"providerStatus":429,"providerCode":"rate_limit","providerType":"","providerMessage":"","model":"","stage":"plan","retryAfter":7}
+[astra-dnd turn] internal test failure
+API checks passed: methods, origin, creation, validation, signed saves, turn pipeline, idempotency and error mapping.
+DOM playtest passed: rich creation, codex commands, resources, turns, persistence, corrupt-save recovery and full classic peaceful route.

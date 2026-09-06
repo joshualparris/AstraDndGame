@@ -1,0 +1,44 @@
+FAIL M01 important facts retained after 10 turns — Lost semantic facts: Player hides an item under the Blackthorn bridge
++ actual - expected
+
++ [
++   'Player hides an item under the Blackthorn bridge'
++ ]
+- []
+
+FAIL M01 important facts retained after 30 turns — Lost semantic facts: NPC Mira owes player a favour; Player hides an item under the Blackthorn bridge
++ actual - expected
+
++ [
++   'NPC Mira owes player a favour',
++   'Player hides an item under the Blackthorn bridge'
++ ]
+- []
+
+FAIL M01 important facts retained after 100 turns — Lost semantic facts: NPC Mira owes player a favour; Player hides an item under the Blackthorn bridge
++ actual - expected
+
++ [
++   'NPC Mira owes player a favour',
++   'Player hides an item under the Blackthorn bridge'
++ ]
+- []
+
+FAIL M01 important facts retained after 300 turns — Lost semantic facts: NPC Mira owes player a favour; Player hides an item under the Blackthorn bridge
++ actual - expected
+
++ [
++   'NPC Mira owes player a favour',
++   'Player hides an item under the Blackthorn bridge'
++ ]
+- []
+
+PASS M02 open-world action accepted: I leave the road and walk into the forest.
+PASS M02 open-world action accepted: I ignore the quest.
+PASS M02 open-world action accepted: I try to open a bakery.
+PASS M02 open-world action accepted: I travel to Greyhaven.
+PASS M02 open-world action accepted: I follow the river south.
+PASS M02 open-world action accepted: I speak to a random traveller.
+PASS M02 open-world action accepted: I climb onto the roof.
+PASS M02 open-world action accepted: I return to someone I met earlier.
+{"target":"C:\\dev\\Astra\\CodexPortQA","total":12,"passed":8,"failed":4}
