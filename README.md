@@ -12,6 +12,14 @@ Open-world play requires server-side Groq configuration described below. The cla
 
 Deploy the repository to Vercel with framework preset **Other** and output directory **dist**. `vercel.json` supplies the build command, runs the full deterministic/DOM QA suite before deployment, configures the output directory, and defines the `/api/turn` function. A deployment fails rather than publishing when those tests fail.
 
+## Roadmap
+
+`docs/IMPROVEMENTS.md` is a reviewed backlog of possible improvements across game
+mechanics, the AI dungeon master, saves, front-end and accessibility, performance,
+reliability, security, code quality, testing, content, docs and licensing. Items are
+marked as confirmed defects, genuine gaps or design ideas, and the document ends with a
+suggested order of work.
+
 ## Files
 
 - `dist/engine.js`: serialisable rules and story graph for the classic adventure; also exports CommonJS for tests.
