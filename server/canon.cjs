@@ -4,7 +4,7 @@ const clean=(v,n=260)=>typeof v==='string'?v.replace(/\s+/g,' ').trim().slice(0,
 const idFor=(kind,content)=>`${kind}-${crypto.createHash('sha1').update(`${kind}:${content.toLowerCase()}`).digest('hex').slice(0,12)}`;
 function rank(content,kind){
   const c=content.toLowerCase();
-  if(kind==='goal'||kind==='backstory'||/\b(promis|oath|swore|vowed|defeated|killed|died|betray|rescued|married|child|sibling|parent)\b/.test(c))return 'high';
+  if(kind==='goal'||kind==='backstory'||/\b(promis|oath|swore|vowed|defeat|kill|died|betray|rescu|marri|child|sibling|parent)/.test(c))return 'high';
   if(kind==='person'||kind==='faction'||kind==='event'||kind==='quest')return 'medium';
   return 'low';
 }
@@ -35,7 +35,8 @@ function prune(items){
   return [...high,...medium,...low].sort((a,b)=>a.lastSeen-b.lastSeen).slice(-42);
 }
 function summary(items){
-  const important=[...items].sort((a,b)=>({high:0,medium:1,low:2}[a.importance]-({high:0,medium:1,low:2}[b.importance])||b.lastSeen-a.lastSeen).slice(0,18);
+  const order={high:0,medium:1,low:2};
+  const important=[...items].sort((a,b)=>(order[a.importance]??2)-(order[b.importance]??2)||b.lastSeen-a.lastSeen).slice(0,18);
   return important.map(x=>`${x.importance.toUpperCase()} ${x.kind}: ${x.content}`).join('\n').slice(0,3200);
 }
 function enrichState(input){

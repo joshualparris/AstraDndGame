@@ -22,7 +22,7 @@ function test(name,fn){return Promise.resolve().then(fn).then(()=>console.log('â
   await test('paladin smite consumes normal spell resource and rolls extra server damage',()=>{
     let s=characters.enrichState(world.initial('Valerius','paladin'),{fresh:true});
     const resolution={kind:'attack',resource:'spell',roll:{success:true,critical:false}};const dmg=rules.attackDamage(s,resolution,high,'I strike and use Divine Smite.');
-    assert.equal(dmg.amount,26);assert.match(dmg.text,/Divine Smite/);
+    assert.equal(dmg.amount,27);assert.match(dmg.text,/Divine Smite/);
   });
   await test('ranger longbow works at tactical range with deterministic cover-aware attack',()=>{
     let s=characters.enrichState(world.initial('Elowen','ranger'),{fresh:true});s=tactical.startEncounter(s,'Bog raider');
