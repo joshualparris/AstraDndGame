@@ -1,6 +1,6 @@
 'use strict';
-const CACHE='astra-shell-v1';
-const ASSETS=['./','./index.html','./style.css','./extras.css','./engine.js','./world.js','./extras.js','./classic.html','./app.js','./manifest.webmanifest','./icon.svg'];
+const CACHE='astra-shell-v2';
+const ASSETS=['./','./index.html','./style.css','./extras.css','./aidm-port.css','./engine.js','./world.js','./extras.js','./aidm-port.js','./classic.html','./app.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{
