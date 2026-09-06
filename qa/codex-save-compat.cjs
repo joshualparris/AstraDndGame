@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {test,run,initial,world,characters,tactical}=require('./codex-harness.cjs');
+const secret='codex-qa-fake-signing-secret-not-a-credential';
+for(const cls of ['fighter','rogue','wizard'])for(const variant of ['no-combat','old-grid','zero-hp','populated','depleted','undo'])test('S01 legacy '+cls+' '+variant,()=>{let s=initial(cls);delete s.party;delete s.slotsMax;delete s.canon;if(variant==='old-grid')s=tactical.startEncounter(s);if(variant==='zero-hp')s.hp=0;if(variant==='populated'){s.npcs=['Mira owes a favour'];s.facts=['Hidden item under bridge'];s.inventory.push('Ancient key');s.gold=73}if(variant==='depleted')s.slots=0;if(variant==='undo')s.history=[{action:'Look',narrative:'A road'}];const out=characters.enrichState(world.verify(world.sign(s,secret),secret));for(const key of ['hp','inventory','gold','location','npcs','facts','cls','slots','id','history'])assert.deepEqual(out[key],s[key],key);assert.equal(new Set(out.party.map(x=>x.id)).size,out.party.length)});
+test('S02 missing optional legacy fields (256 combinations)',()=>{const fields=['conditions','deathSaves','exits','factions','facts','journalEvents','secondWindReady','danger'];for(let i=0;i<256;i++){const s=initial();fields.forEach((f,j)=>{if(i&(1<<j))delete s[f]});const out=world.verify(world.sign(s,secret),secret);assert.equal(out.id,s.id);assert.equal(out.hp,s.hp);assert(Array.isArray(out.conditions))}});
+test('S03 signed negative gold must fail validation or normalize',()=>{const s=initial();s.gold=-5;let out;try{out=world.verify(world.sign(s,secret),secret)}catch{return}assert(out.gold>=0)});
+test('S04 signed HP above maximum must fail validation or normalize',()=>{const s=initial();s.hp=1000;let out;try{out=world.verify(world.sign(s,secret),secret)}catch{return}assert(out.hp<=out.maxHp)});
+test('S05 signed duplicate actor IDs must fail validation or normalize',()=>{const s=initial();s.party=[{id:'duplicate'},{id:'duplicate'}];let out;try{out=characters.enrichState(world.verify(world.sign(s,secret),secret))}catch{return}assert.equal(new Set(out.party.map(x=>x.id)).size,out.party.length)});
+run();

@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {test,run,initial,world,characters,load,plan,result,high}=require('./codex-harness.cjs');
+const adjudication=load('server/adjudication.cjs');
+test('A01 malformed plans rejected without mutation (500 cases)',()=>{const s=initial(),before=structuredClone(s);for(let i=0;i<500;i++){const p=plan({dc:[NaN,'12',null,1.5,undefined][i%5]});assert.equal(adjudication.validPlan(p),false);assert.throws(()=>world.resolve(s,p));assert.deepEqual(s,before)}});
+test('A02 exhausted slots block spell',()=>{const s=initial('wizard');s.slots=0;assert(world.resolve(s,plan({resource:'spell'})).resolution.blocked)});
+test('A03 unknown spell cannot spend slots',()=>{const s=initial('wizard');const r=world.resolve(s,plan({resource:'spell'}),high,'I cast World Obliteration');assert(r.resolution.blocked);assert.equal(r.state.slots,s.slots)});
+test('A04 downed action becomes death save',()=>{const s=initial();s.hp=0;const r=world.resolve(s,plan({kind:'attack'}),()=>10,'I attack');assert.equal(r.resolution.kind,'death-save');assert.equal(r.resolution.damage,0)});
+test('A05 narration-only JSON missing required fields rejected',()=>{const s=initial(),r=world.resolve(s,plan());assert.throws(()=>world.apply(r.state,{narrative:'Everything succeeds.'},'Look',r.resolution))});
+test('A06 invented long rest cannot recharge spell slots',()=>{const s=initial('cleric');s.slots=0;const r=world.resolve(s,plan());const out=characters.afterTurn(world.apply(r.state,result(s,{rest:'long'}),'I look around.',r.resolution),{rest:'long'});assert.equal(out.slots,0)});
+test('A07 blocked spell cannot recharge via invented long rest',()=>{const s=initial('wizard');s.slots=0;const r=world.resolve(s,plan({resource:'spell'}));const out=characters.afterTurn(world.apply(r.state,result(s,{rest:'long'}),'I cast a spell.',r.resolution),{rest:'long'});assert.equal(out.slots,0)});
+test('A08 invented damage cannot reduce HP on harmless observation',()=>{const s=initial(),r=world.resolve(s,plan());const out=world.apply(r.state,result(s,{narrative:'A phantom opportunity attack hits you for 12 damage.',hpChange:-12}),'I look around.',r.resolution);assert.equal(out.hp,s.hp)});
+test('A09 unaffordable purchase must reject without awarding inventory',()=>{const s=initial();s.gold=1;const r=world.resolve(s,plan());const out=world.apply(r.state,result(s,{goldChange:-50,inventory:[...s.inventory,'Plate armour']}),'I buy armour for 50 gold.',r.resolution);assert(!out.inventory.includes('Plate armour'));assert.equal(out.gold,1)});
+test('A10 exhausted fighter feature rejected',()=>{const s=initial();s.hp=1;s.secondWindReady=false;assert(world.resolve(s,plan({resource:'secondWind'})).resolution.blocked)});
+test('A11 invalid adjudication repaired once before resolution',async()=>{let calls=0;const mock={generate:async()=>++calls===1?{}:plan(),ProviderError:Error};const p=await adjudication.generateValidatedPlan({groq:mock,world,state:initial(),action:'Look',env:{}});assert(adjudication.validPlan(p));assert.equal(calls,2)});
+test('A12 unrecoverable adjudication rejects after two attempts',async()=>{let calls=0;const s=initial(),before=structuredClone(s);await assert.rejects(adjudication.generateValidatedPlan({groq:{generate:async()=>{calls++;return {}},ProviderError:Error},world,state:s,action:'Look',env:{}}));assert.equal(calls,2);assert.deepEqual(s,before)});
+run();
