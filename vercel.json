@@ -21,6 +21,10 @@
     "api/turn.js": {
       "maxDuration": 120,
       "includeFiles": "server/**"
+    },
+    "api/tactical.js": {
+      "maxDuration": 30,
+      "includeFiles": "server/**"
     }
   }
 }
