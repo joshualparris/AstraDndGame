@@ -1,0 +1,25 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {JSDOM}=require('jsdom');
+const extras=fs.readFileSync(path.resolve(__dirname,'../dist/extras.js'),'utf8');
+function campaign(name='Tester',turn=0){return {save:'signed-save-token-abcdefghijk',state:{version:3,id:'campaign-id',name,cls:'fighter',turn,level:2,xp:0,hp:24,maxHp:24,ac:16,slots:0,potions:2,gold:10,secondWindReady:true,inventory:['Longsword'],conditions:[],location:'Blackthorn road',time:'Dusk',danger:'tense',quests:['Find the truth'],exits:['Blackthorn'],factions:['Villagers'],facts:['The bell rang'],narrative:'Rain falls on the road.'}}}
+const dom=new JSDOM('<!doctype html><body><header><button id="rules">Rules</button></header><main id="game"><aside><p id="savestatus"></p></aside><article><div id="story" style="height:100px;overflow:auto"></div><p id="turnstatus"></p></article></main></body>',{url:'https://game.test/',runScripts:'outside-only',pretendToBeVisual:true});
+const w=dom.window;w.fetch=async()=>({ok:true,clone(){return this},json:async()=>({})});w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.SpeechSynthesisUtterance=function(text){this.text=text};w.speechSynthesis={speaking:false,speak(){},cancel(){}};
+w.localStorage.setItem('astra-open-world-v3',JSON.stringify(campaign()));w.eval(extras);
+const X=w.AstraExtras;
+assert(X,'AstraExtras should be exposed for deterministic QA');
+assert(w.document.querySelector('#astraCampaignTools'),'campaign tools should be injected');
+assert(w.document.querySelector('#displayTools'),'display controls should be injected');
+assert(w.document.querySelector('#astraSettings'),'settings dialog should be injected');
+assert(w.document.querySelector('#jumpLatest'),'jump-to-latest control should be injected');
+const summary=JSON.parse(w.render_game_to_text());assert.equal(summary.name,'Tester');assert.equal(summary.turn,0);assert.equal('save' in summary,false,'inspection hook must not expose signed save token');
+const backup=X.backupPayload();assert.equal(backup.format,'astra-campaign-backup-v1');assert.equal(backup.campaign.state.name,'Tester');
+assert.equal(X.saveSlot(1),true);assert.deepEqual(X.slotInfo(1).name,'Tester');w.localStorage.setItem('astra-open-world-v3',JSON.stringify(campaign('Changed',4)));assert.equal(X.loadSlot(1,{reload:false}),true);assert.equal(X.readCampaign().state.name,'Tester');
+const before=campaign('Tester',0),safeData={save:'new-signed-save-abcdefghijk',state:{...before.state,turn:1,location:'Village square',narrative:'You walk into town.'},resolution:{kind:'none',resource:'none',blocked:false,roll:null,healing:0,damage:0,deathSave:null}};
+assert.equal(X.safeUndoCandidate(before,safeData),true,'non-random narrative movement should be undoable');assert.equal(X.safeUndoCandidate(before,{...safeData,resolution:{...safeData.resolution,roll:{die:12}}}),false,'revealed roll must lock undo');assert.equal(X.safeUndoCandidate(before,{...safeData,state:{...safeData.state,gold:11}}),false,'material state change must lock undo');assert.equal(X.safeUndoCandidate(before,{...safeData,resolution:{...safeData.resolution,resource:'potion'}}),false,'resource use must lock undo');
+w.sessionStorage.setItem('astra-open-world-undo-v1',JSON.stringify({campaign:before,forTurn:1,createdAt:Date.now()}));w.localStorage.setItem('astra-open-world-v3',JSON.stringify(safeData.save?{save:safeData.save,state:safeData.state}:null));assert.equal(X.applyUndo({reload:false}),true);assert.equal(X.readCampaign().state.turn,0);
+X.setPref('largeText',true);X.setPref('readableFont',true);X.setPref('focus',true);assert(w.document.body.classList.contains('large-text'));assert(w.document.body.classList.contains('readable-font'));assert(w.document.body.classList.contains('focus-reading'));
+assert.equal(X.restoreBackupObject(backup,{reload:false}),true);assert.equal(X.readCampaign().state.name,'Tester');
+console.log('Cross-repo QA passed: portable backup, slots, safe undo rules, accessibility preferences, inspection hook and injected controls.');dom.window.close();
