@@ -32,9 +32,12 @@ const http=require('../server/http.cjs');
   assert.equal(healed.combat.actors.hero.hp,10,'world resolution does not own tactical projection');
   const synced=tactical.enrichSpatial(healed);
   assert.equal(synced.combat.actors.hero.hp,20,'narrative healing must reach tactical state before the next action');
+  // Force adjacency so this regression tests the HP source-of-truth invariant rather than a
+  // particular enemy archetype's preferred range, pathing or cover behaviour.
+  synced.combat.grid.cells={};synced.combat.actors['enemy-1'].x=3;synced.combat.actors['enemy-1'].y=4;synced.combat.actors['enemy-1'].ranged=false;
   const afterEnemy=tactical.endTurn(synced,(min,max)=>max-1).state;
-  assert.equal(afterEnemy.hp,13,'healing must survive the next tactical hit');
-  assert.equal(afterEnemy.combat.actors.hero.hp,13,'tactical projection must remain equal to campaign HP');
+  assert(afterEnemy.hp<20,'a controlled adjacent enemy hit must reduce the healed campaign HP');
+  assert.equal(afterEnemy.combat.actors.hero.hp,afterEnemy.hp,'tactical projection must remain equal to campaign HP');
 
   const schema={type:'object',properties:{ok:{type:'boolean'}},required:['ok'],additionalProperties:false};
   const messages=[{role:'user',content:'Return JSON.'}];

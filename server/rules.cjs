@@ -19,7 +19,7 @@ const BACKGROUNDS={
 const TONES={balanced:'Balanced adventure',heroic:'Heroic fantasy',mystery:'Dark mystery',whimsical:'Whimsical fantasy'};
 
 const MAX_LEVEL=5;
-const XP_FOR_LEVEL={2:0,3:75,4:150,5:250};
+const XP_FOR_LEVEL={2:0,3:15,4:35,5:60};
 const HP_PER_LEVEL={fighter:8,rogue:6,wizard:5};
 const UNLOCKS={
   fighter:{3:['Improved Critical: attacks now crit on 19 or 20.']},
@@ -39,6 +39,7 @@ function backgroundProficient(state,ability){const bg=BACKGROUNDS[state.backgrou
 function mergeAdvantage(base,state,kind){
   let plus=base==='advantage',minus=base==='disadvantage';const c=new Set(normaliseConditions(state.conditions));
   if((c.has('poisoned')||c.has('frightened'))&&(kind==='check'||kind==='attack'))minus=true;
+  if(c.has('exhausted')&&kind==='check')minus=true;
   if((c.has('restrained')||c.has('prone'))&&kind==='attack')minus=true;
   if(c.has('invisible')&&kind==='attack')plus=true;
   if(plus&&minus)return 'normal';return plus?'advantage':minus?'disadvantage':'normal';
@@ -59,18 +60,36 @@ function progressionFor(cls,fromLevel,toLevel){
   for(let level=fromLevel+1;level<=toLevel;level++){hpGain+=hpPerLevel(cls);unlocks.push(...unlocksAt(cls,level))}
   return {from:fromLevel,to:toLevel,hpGain,unlocks};
 }
+function inventoryText(state){return Array.isArray(state?.inventory)?state.inventory.filter(item=>typeof item==='string').join('\n'):''}
+function weaponTraits(state){
+  const inventory=inventoryText(state),traits={attackBonus:0,damageBonus:0,bonusDice:0,bonusSides:0,bonusLabel:''};
+  if(state?.cls==='fighter'){
+    if(/\+1\s+(?:flaming\s+)?longsword/i.test(inventory)){traits.attackBonus=1;traits.damageBonus=1}
+    if(/\b(?:flaming|flame[- ]touched)\s+longsword\b/i.test(inventory)){traits.bonusDice=1;traits.bonusSides=4;traits.bonusLabel='fire'}
+  }else if(state?.cls==='rogue'){
+    if(/\+1\s+shortbow/i.test(inventory)){traits.attackBonus=1;traits.damageBonus=1}
+  }else if(state?.cls==='wizard'){
+    if(/\+1\s+(?:wand|staff|arcane focus)/i.test(inventory)){traits.attackBonus=1;traits.damageBonus=1}
+  }
+  return traits;
+}
+function traitDamage(traits,crit,roll){
+  if(!traits.bonusDice||!traits.bonusSides)return {amount:0,text:''};
+  const first=diceTotal(traits.bonusDice,traits.bonusSides,roll),extra=crit?diceTotal(traits.bonusDice,traits.bonusSides,roll):0;
+  return {amount:first+extra,text:` + ${traits.bonusLabel||'item'} ${first}${extra?` + ${extra} critical`:''}`};
+}
 function attackDamage(state,resolution,roll=randomInt,action=''){
   const r=resolution?.roll;if(resolution?.kind!=='attack'||!r?.success)return {amount:0,text:''};
-  const crit=!!r.critical,level=characterLevel(state);let amount=0,label='';
+  const crit=!!r.critical,level=characterLevel(state),traits=weaponTraits(state);let amount=0,label='';
   if(state.cls==='fighter'){
-    const first=die(8,roll),extra=crit?die(8,roll):0;amount=first+extra+3;label=`Longsword ${first}${crit?` + ${extra} critical die`:''} + 3`;
+    const first=die(8,roll),extra=crit?die(8,roll):0,item=traitDamage(traits,crit,roll);amount=first+extra+3+traits.damageBonus+item.amount;label=`Longsword ${first}${crit?` + ${extra} critical die`:''} + ${3+traits.damageBonus}${item.text}`;
   }else if(state.cls==='rogue'){
     const first=die(6,roll),extra=crit?die(6,roll):0,hasSneak=r.advantage==='advantage'||/\b(sneak|hidden|from hiding)\b/i.test(action),sneak=hasSneak?diceTotal(sneakDice(level),6,roll):0,sneakCrit=crit&&hasSneak?diceTotal(sneakDice(level),6,roll):0;
-    amount=first+extra+3+sneak+sneakCrit;label=`Weapon ${first}${crit?` + ${extra} critical die`:''} + 3${sneak?` + sneak ${sneak}${sneakCrit?` + ${sneakCrit}`:''}`:''}`;
+    amount=first+extra+3+traits.damageBonus+sneak+sneakCrit;label=`Weapon ${first}${crit?` + ${extra} critical die`:''} + ${3+traits.damageBonus}${sneak?` + sneak ${sneak}${sneakCrit?` + ${sneakCrit}`:''}`:''}`;
   }else{
-    const first=diceTotal(fireBoltDice(level),10,roll),extra=crit?diceTotal(fireBoltDice(level),10,roll):0;amount=first+extra;label=`Fire Bolt ${first}${crit?` + ${extra} critical dice`:''}`;
+    const first=diceTotal(fireBoltDice(level),10,roll),extra=crit?diceTotal(fireBoltDice(level),10,roll):0;amount=first+extra+traits.damageBonus;label=`Fire Bolt ${first}${crit?` + ${extra} critical dice`:''}${traits.damageBonus?` + ${traits.damageBonus} focus`:''}`;
   }
-  return {amount:clamp(amount,0,50),text:label};
+  return {amount:clamp(amount,0,60),text:label};
 }
 function automaticSpellDamage(state,resolution,roll=randomInt,action=''){
   if(state.cls!=='wizard'||resolution?.resource!=='spell'||resolution?.blocked||!/\bmagic\s+missile\b/i.test(action))return {amount:0,text:''};
@@ -90,4 +109,4 @@ function rollDeathSave(state,roll=randomInt){
 function applyConditionChanges(current,added,removed){
   const set=new Set(normaliseConditions(current));for(const c of normaliseConditions(removed))set.delete(c);for(const c of normaliseConditions(added))set.add(c);return [...set].slice(0,6);
 }
-module.exports={MAX_LEVEL,characterLevel,xpForLevel,levelForXp,xpToNextLevel,proficiencyBonus,wizardSlots,criticalThreshold,sneakDice,fireBoltDice,progressionFor,CONDITIONS,ORIGINS,BACKGROUNDS,TONES,normaliseChoice,normaliseConditions,backgroundProficient,mergeAdvantage,attackDamage,automaticSpellDamage,freshDeathSaves,rollDeathSave,applyConditionChanges};
+module.exports={MAX_LEVEL,characterLevel,xpForLevel,levelForXp,xpToNextLevel,proficiencyBonus,wizardSlots,criticalThreshold,sneakDice,fireBoltDice,progressionFor,weaponTraits,CONDITIONS,ORIGINS,BACKGROUNDS,TONES,normaliseChoice,normaliseConditions,backgroundProficient,mergeAdvantage,attackDamage,automaticSpellDamage,freshDeathSaves,rollDeathSave,applyConditionChanges};

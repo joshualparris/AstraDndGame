@@ -51,9 +51,9 @@ test('rest healing cannot be doubled by positive hpChange',()=>{
   assert.equal(updated.hp,11);
 });
 
-test('long rest restores wizard slots and health',()=>{
-  const s={...W.initial('W','wizard'),hp:2,slots:0};const updated=W.apply(s,result(s,{rest:'long',time:'Morning'}),'I sleep in a safe room for eight hours.',{blocked:false,healing:0});
-  assert.equal(updated.hp,updated.maxHp);assert.equal(updated.slots,3);
+test('long rest restores wizard slots and health and clears exhaustion',()=>{
+  const s={...W.initial('W','wizard'),hp:2,slots:0,conditions:['exhausted']};const updated=W.apply(s,result(s,{rest:'long',time:'Morning'}),'I sleep in a safe room for eight hours.',{blocked:false,healing:0});
+  assert.equal(updated.hp,updated.maxHp);assert.equal(updated.slots,3);assert.equal(updated.conditions.includes('exhausted'),false);
 });
 
 test('blocked actions preserve material state but still advance narrative history',()=>{
@@ -81,7 +81,7 @@ test('attack natural 20 succeeds and natural 1 fails regardless of total',()=>{
 
 test('state updates remain bounded',()=>{
   const s=W.initial('R','fighter');const huge=Array.from({length:50},(_,i)=>'x'.repeat(300)+i);const updated=W.apply(s,result(s,{narrative:'n'.repeat(8000),location:'l'.repeat(300),time:'t'.repeat(300),memory:'m'.repeat(5000),suggestions:huge,inventory:huge,npcs:huge,quests:huge,places:huge,hpChange:-999,goldChange:999,xpGain:999}),'action',{blocked:false,healing:0});
-  assert.equal(updated.narrative.length,5000);assert.equal(updated.location.length,100);assert.equal(updated.memory.length,3500);assert.equal(updated.suggestions.length,4);assert.equal(updated.inventory.length,30);assert.equal(updated.npcs.length,15);assert.equal(updated.quests.length,12);assert.equal(updated.places.length,20);assert.equal(updated.hp,12);assert.equal(updated.gold,60);assert.equal(updated.xp,25);
+  assert.equal(updated.narrative.length,5000);assert.equal(updated.location.length,100);assert.equal(updated.memory.length,3500);assert.equal(updated.suggestions.length,4);assert.equal(updated.inventory.length,30);assert.equal(updated.npcs.length,15);assert.equal(updated.quests.length,12);assert.equal(updated.places.length,20);assert.equal(updated.hp,12);assert.equal(updated.gold,60);assert.equal(updated.xp,3);
 });
 
 test('history is capped and signed saves reject tampering',()=>{

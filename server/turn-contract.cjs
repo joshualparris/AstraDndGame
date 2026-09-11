@@ -23,7 +23,7 @@ const schema=object({
   danger:{type:'string',enum:['safe','tense','dangerous']},
   hpChange:integer(-12,12),
   goldChange:integer(-50,50),
-  xpGain:integer(0,25),
+  xpGain:integer(0,3),
   rest:{type:'string',enum:['none','short','long']}
 });
 const required=Object.keys(schema.properties),allowed=new Set(required),danger=new Set(['safe','tense','dangerous']),rest=new Set(['none','short','long']),condition=new Set(rules.CONDITIONS);
@@ -36,6 +36,6 @@ function valid(value){
   if(!stringList(value.suggestions,4,140)||!stringList(value.inventory,30,160)||!stringList(value.npcs,15,260)||!stringList(value.quests,12,200)||!stringList(value.places,20,180)||!stringList(value.exits,8,120)||!stringList(value.factions,12,220)||!stringList(value.facts,16,260)||!stringList(value.journalEvents,18,240))return false;
   if(!stringList(value.conditionsAdded,6,40)||!stringList(value.conditionsRemoved,6,40)||![...value.conditionsAdded,...value.conditionsRemoved].every(item=>condition.has(item.toLowerCase())))return false;
   if(!danger.has(value.danger)||!rest.has(value.rest))return false;
-  return Number.isInteger(value.hpChange)&&value.hpChange>=-12&&value.hpChange<=12&&Number.isInteger(value.goldChange)&&value.goldChange>=-50&&value.goldChange<=50&&Number.isInteger(value.xpGain)&&value.xpGain>=0&&value.xpGain<=25;
+  return Number.isInteger(value.hpChange)&&value.hpChange>=-12&&value.hpChange<=12&&Number.isInteger(value.goldChange)&&value.goldChange>=-50&&value.goldChange<=50&&Number.isInteger(value.xpGain)&&value.xpGain>=0&&value.xpGain<=3;
 }
 module.exports={schema,valid};

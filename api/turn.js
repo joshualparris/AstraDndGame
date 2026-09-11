@@ -5,6 +5,7 @@ const groq=require('../server/groq.cjs');
 const adjudication=require('../server/adjudication.cjs');
 const modelOutput=require('../server/model-output.cjs');
 const turnContract=require('../server/turn-contract.cjs');
+const turnAuthority=require('../server/turn-authority.cjs');
 const spatial=require('../server/spatial.cjs');
 const tactical=require('../server/tactical.cjs');
 const http=require('../server/http.cjs');
@@ -35,12 +36,15 @@ async function createCampaign(input,secret,res){try{const state=spatial.enrichEx
 async function resolveTurn(input,secret,res){
   let old;try{old=verifySave(input.save)}catch{return http.reply(res,400,{error:'This save cannot be verified or has expired. Start a new open-world adventure.'})}
   const key=cacheKey(old,input.requestId);http.pruneCache(instanceResponses);if(instanceResponses.has(key))return http.reply(res,200,instanceResponses.get(key).data);if(instanceInflight.has(old.id))return http.reply(res,409,{error:'Your previous turn is still being resolved.'});instanceInflight.add(old.id);
-  try{const plan=await adjudication.generateValidatedPlan({groq,world,state:old,action:input.action,env}),{state,resolution}=world.resolve(old,plan,undefined,input.action),result=await modelOutput.generateValidated({groq,messages:world.narrateMessages(state,input.action,resolution),schema:turnContract.schema,validate:turnContract.valid,env,stage:'narrate'}),updated=enrichForResponse(world.apply(state,result,input.action,resolution)),data={state:updated,save:world.sign(updated,secret),resolution};instanceResponses.set(key,{data,expires:Date.now()+120000});return http.reply(res,200,data)}
+  try{
+    const plan=await adjudication.generateValidatedPlan({groq,world,state:old,action:input.action,env}),{state,resolution}=world.resolve(old,plan,undefined,input.action),validateNarration=value=>turnContract.valid(value)&&turnAuthority.validNarrativeUpdate(state,input.action,value),result=await modelOutput.generateValidated({groq,messages:world.narrateMessages(state,input.action,resolution),schema:turnContract.schema,validate:validateNarration,env,stage:'narrate',repairInstruction:turnAuthority.repairInstruction(state,input.action)}),updated=enrichForResponse(world.apply(state,result,input.action,resolution)),data={state:updated,save:world.sign(updated,secret),resolution};
+    instanceResponses.set(key,{data,expires:Date.now()+120000});return http.reply(res,200,data);
+  }
   catch(error){const provider=error instanceof groq.ProviderError;if(provider)safeProviderLog(error);else console.error('[astra-dnd turn]',JSON.stringify({name:error?.name||'Error',stage:'turn'}));const status=provider?error.status:503,retryAfter=provider?error.retryAfter||0:0;if(retryAfter)res.setHeader('Retry-After',String(retryAfter));return http.reply(res,status,{error:provider?error.message:'The turn could not be safely resolved. Your save is unchanged; please try again.',retryAfter})}
   finally{instanceInflight.delete(old.id)}
 }
 module.exports=async function handler(req,res){
-  const secret=signingSecret();if(req.method==='GET')return http.reply(res,200,{configured:configured(),credentialCount:groq.keys(env).length,signingMode:secretPolicy.signingMode(env),mode:'open-world',version:3,features:['identity','backgrounds','conditions','death-saves','attack-damage','map-exits','factions','journal','local-commands'],build:(env.VERCEL_GIT_COMMIT_SHA||'local').slice(0,12)});
+  const secret=signingSecret();if(req.method==='GET')return http.reply(res,200,{configured:configured(),mode:'open-world',version:3,features:['identity','backgrounds','conditions','death-saves','attack-damage','map-exits','factions','journal','local-commands','server-owned-economy'],build:(env.VERCEL_GIT_COMMIT_SHA||'local').slice(0,12)});
   if(req.method!=='POST'){res.setHeader('Allow','GET, POST');return http.reply(res,405,{error:'Method not allowed.'})}if(!http.sameOrigin(req))return http.reply(res,403,{error:'Please play from the game website.'});if(!configured()||!secret)return http.reply(res,503,{error:'The open-world dungeon master is waiting for its server credentials. The original adventure is still available.'});
   let body;try{body=http.parseBody(req)}catch{return http.reply(res,400,{error:'Invalid request.'})}if(rateLimit(req,res))return;if(Object.hasOwn(body,'start')){const input=validateStart(body);return input?createCampaign(input,secret,res):http.reply(res,400,{error:'Invalid character creation request.'})}const input=validateTurn(body);return input?resolveTurn(input,secret,res):http.reply(res,400,{error:'Write an action of 1–1,000 characters with a valid turn identifier.'});
 };
